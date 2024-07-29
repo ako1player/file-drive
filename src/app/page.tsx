@@ -21,7 +21,9 @@ import { useOrganization, useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
+import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,6 +36,7 @@ const formSchema = z.object({
 })
 
 export default function Home() {
+  const { toast } = useToast();
   const organization = useOrganization();
   const user = useUser();
 
@@ -63,11 +66,25 @@ export default function Home() {
     })
 
     const { storageId } = await result.json();
-    await createFile({ name: values.title, fileId: storageId, orgId })
+    try {
+      await createFile({ name: values.title, fileId: storageId, orgId })
 
-    form.reset();
+      form.reset();
 
-    setIsFileDialogOpen(false);
+      setIsFileDialogOpen(false);
+
+      toast({
+        variant: "success",
+        title: "File Uploaded",
+        description: "Now everyone can view your file"
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Your file could not be uploaded. try again later"
+      })
+    }
   }
 
   let orgId: string | undefined = undefined;
@@ -84,7 +101,7 @@ export default function Home() {
     <main className="container mx-auto pt-12">
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold">Your Files</h1>
-        <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+        <Dialog open={isFileDialogOpen} onOpenChange={(isOpen) => { setIsFileDialogOpen(isOpen); form.reset() }}>
           <DialogTrigger asChild>
             {/* <Button onClick={() => { if (!orgId) return; createFile({ name: "Hello World", orgId }) }}>Upload File</Button> */}
             <Button>Upload File</Button>
@@ -124,7 +141,11 @@ export default function Home() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit">Submit</Button>
+                    {/* Submit button with spinner when user clicks submit */}
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="flex gap-1">
+                      {form.formState.isSubmitting && (<Loader2 className="h-4 w-4 animate-spin" />)}
+                      Submit
+                    </Button>
                   </form>
                 </Form>
               </DialogDescription>
