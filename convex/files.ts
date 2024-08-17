@@ -2,7 +2,6 @@ import { ConvexError, v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
 import { fileTypes } from "./schema";
-import { getUser } from "./users";
 
 //uploads to convex storage
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -14,16 +13,29 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-async function hasAccessToOrg(
-  ctx: QueryCtx | MutationCtx,
-  tokenIdentifier: string,
-  orgId: string
-) {
-  const user = await getUser(ctx, tokenIdentifier);
+async function hasAccessToOrg(ctx: QueryCtx | MutationCtx, orgId: string) {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    return null;
+  }
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_tokenIdentifier", (q) =>
+      q.eq("tokenIdentifier", identity.tokenIdentifier)
+    )
+    .first();
+
+  if (!user) {
+    return null;
+  }
+
   const hasAccess =
     user.orgIds.includes(orgId) || user.tokenIdentifier.includes(orgId);
 
-  return hasAccess;
+  if (!hasAccess) return null;
+
+  return { user };
 }
 
 export const createFile = mutation({
@@ -35,17 +47,7 @@ export const createFile = mutation({
   },
   async handler(ctx, args) {
     //make sure users are logged in
-    const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      throw new ConvexError("You must be logged in to upload file.");
-    }
-
-    const hasAccess = await hasAccessToOrg(
-      ctx,
-      identity.tokenIdentifier,
-      args.orgId
-    );
+    const hasAccess = await hasAccessToOrg(ctx, args.orgId);
 
     if (!hasAccess) {
       throw new ConvexError("you do not have access to this org");
@@ -68,17 +70,7 @@ export const getFiles = query({
     favorites: v.optional(v.boolean()),
   },
   async handler(ctx, args) {
-    const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      return [];
-    }
-
-    const hasAccess = await hasAccessToOrg(
-      ctx,
-      identity.tokenIdentifier,
-      args.orgId
-    );
+    const hasAccess = await hasAccessToOrg(ctx, args.orgId);
 
     if (!hasAccess) {
       return [];
@@ -97,20 +89,10 @@ export const getFiles = query({
     }
 
     if (args.favorites) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_tokenIdentifier", (q) =>
-          q.eq("tokenIdentifier", identity.tokenIdentifier)
-        )
-        .first();
-
-      if (!user) {
-        return files;
-      }
       const favorites = await ctx.db
         .query("favorites")
         .withIndex("by_userId_orgId_fileId", (q) =>
-          q.eq("userId", user._id).eq("orgId", args.orgId)
+          q.eq("userId", hasAccess.user._id).eq("orgId", args.orgId)
         )
         .collect();
 
@@ -163,39 +145,37 @@ export const toggleFavorite = mutation({
   },
 });
 
+export const getAllFavorites = query({
+  args: { orgId: v.string() },
+  async handler(ctx, args) {
+    const hasAccess = await hasAccessToOrg(ctx, args.orgId);
+    if (!hasAccess) {
+      return [];
+    }
+    const favorites = await ctx.db
+      .query("favorites")
+      .withIndex("by_userId_orgId_fileId", (q) =>
+        q.eq("userId", hasAccess.user._id).eq("orgId", args.orgId)
+      )
+      .collect();
+
+    return favorites;
+  },
+});
+
 async function hasAccessToFile(
   ctx: QueryCtx | MutationCtx,
   fileId: Id<"files">
 ) {
-  const identity = await ctx.auth.getUserIdentity();
-
-  if (!identity) {
-    return null;
-  }
-
   const file = await ctx.db.get(fileId);
   if (!file) {
     return null;
   }
-  const hasAccess = await hasAccessToOrg(
-    ctx,
-    identity.tokenIdentifier,
-    file.orgId
-  );
+  const hasAccess = await hasAccessToOrg(ctx, file.orgId);
 
   if (!hasAccess) {
     return null;
   }
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_tokenIdentifier", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier)
-    )
-    .first();
-
-  if (!user) {
-    return null;
-  }
-  return { user, file };
+  return { user: hasAccess.user, file };
 }

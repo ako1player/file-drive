@@ -32,7 +32,7 @@ import { api } from "../../../../convex/_generated/api"
 import { Doc, Id } from "../../../../convex/_generated/dataModel"
 
 
-function FileCardActions({ file }: { file: Doc<"files"> }) {
+function FileCardActions({ file, isFavorited }: { file: Doc<"files">, isFavorited: boolean }) {
     const deleteFile = useMutation(api.files.deleteFile)
     const toggleFavorite = useMutation(api.files.toggleFavorite)
     const { toast } = useToast();
@@ -67,9 +67,18 @@ function FileCardActions({ file }: { file: Doc<"files"> }) {
             <DropdownMenu>
                 <DropdownMenuTrigger><MoreVertical /></DropdownMenuTrigger>
                 <DropdownMenuContent>
-                    <DropdownMenuItem className="flex gap-1 items-center cursor-pointer" onClick={() => { toggleFavorite({ fileId: file._id }) }}><StarIcon className="w-4 h-4" />Favorite</DropdownMenuItem>
+                    <DropdownMenuItem className="flex gap-1 items-center cursor-pointer hover:bg-slate-100" onClick={() => { toggleFavorite({ fileId: file._id }) }}>
+                        {isFavorited ?
+                            <>
+                                <StarIcon className="w-4 h-4" fill="yellow" /> Unfavorite
+                            </> :
+                            <>
+                                <StarIcon className="w-4 h-4" /> Favorite
+                            </>
+                        }
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="flex gap-1 text-red-600 items-center cursor-pointer" onClick={() => setIsConfirmOpen(true)}><TrashIcon className="w-4 h-4" />Delete</DropdownMenuItem>
+                    <DropdownMenuItem className="flex gap-1 text-red-600 items-center cursor-pointer hover:bg-slate-100" onClick={() => setIsConfirmOpen(true)}><TrashIcon className="w-4 h-4" />Delete</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
@@ -80,13 +89,16 @@ function getFileUrl(fileId: Id<"_storage">): string {
     return `${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${fileId}`;
 }
 
-export function FileCard({ file }: { file: Doc<"files"> }) {
+export function FileCard({ file, favorites }: { file: Doc<"files">, favorites: Doc<"favorites">[] }) {
 
     const typeIcons = {
         "image": <ImageIcon />,
         "pdf": <FileTextIcon />,
         "csv": <GanttChartIcon />
     } as Record<Doc<"files">["type"], ReactNode>;
+
+    const isFavorited = favorites.some((favorite) => favorite.fileId === file._id);
+
 
     return (
         <Card>
@@ -96,7 +108,7 @@ export function FileCard({ file }: { file: Doc<"files"> }) {
                     {file.name}
                 </CardTitle>
                 <div className="absolute top-2 right-2">
-                    <FileCardActions file={file} />
+                    <FileCardActions isFavorited={isFavorited} file={file} />
                 </div>
                 {/* <CardDescription>Card Description</CardDescription> */}
             </CardHeader>
