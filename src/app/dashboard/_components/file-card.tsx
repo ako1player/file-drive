@@ -23,6 +23,7 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/components/ui/use-toast"
+import { Protect } from "@clerk/nextjs"
 import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu"
 import { useMutation } from "convex/react"
 import { FileTextIcon, GanttChartIcon, ImageIcon, MoreVertical, StarIcon, TrashIcon } from "lucide-react"
@@ -77,8 +78,13 @@ function FileCardActions({ file, isFavorited }: { file: Doc<"files">, isFavorite
                             </>
                         }
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="flex gap-1 text-red-600 items-center cursor-pointer hover:bg-slate-100" onClick={() => setIsConfirmOpen(true)}><TrashIcon className="w-4 h-4" />Delete</DropdownMenuItem>
+                    <Protect
+                        role="org:admin"
+                        fallback={<></>}
+                    >
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="flex gap-1 text-red-600 items-center cursor-pointer hover:bg-slate-100" onClick={() => setIsConfirmOpen(true)}><TrashIcon className="w-4 h-4" />Delete</DropdownMenuItem>
+                    </Protect>
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
