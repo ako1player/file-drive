@@ -54,8 +54,6 @@ export default function UploadButton() {
     const generateUploadUrl = useMutation(api.files.generateUploadUrl)
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
         if (!orgId) return;
 
         const postUrl = await generateUploadUrl();
@@ -66,18 +64,22 @@ export default function UploadButton() {
             method: "POST",
             headers: { "Content-Type": fileType },
             body: values.file[0],
-        })
-
+        });
         const { storageId } = await result.json();
 
         const types = {
             "image/png": "image",
             "application/pdf": "pdf",
-            "text/csv": "csv"
+            "text/csv": "csv",
         } as Record<string, Doc<"files">["type"]>;
 
         try {
-            await createFile({ name: values.title, fileId: storageId, orgId, type: types[fileType] })
+            await createFile({
+                name: values.title,
+                fileId: storageId,
+                orgId,
+                type: types[fileType],
+            });
 
             form.reset();
 
@@ -86,14 +88,14 @@ export default function UploadButton() {
             toast({
                 variant: "success",
                 title: "File Uploaded",
-                description: "Now everyone can view your file"
-            })
-        } catch (error) {
+                description: "Now everyone can view your file",
+            });
+        } catch (err) {
             toast({
                 variant: "destructive",
-                title: "Error",
-                description: "Your file could not be uploaded. try again later"
-            })
+                title: "Something went wrong",
+                description: "Your file could not be uploaded, try again later",
+            });
         }
     }
 
@@ -107,56 +109,67 @@ export default function UploadButton() {
 
     const createFile = useMutation(api.files.createFile)
     return (
-
-        <Dialog open={isFileDialogOpen} onOpenChange={(isOpen) => { setIsFileDialogOpen(isOpen); form.reset() }}>
+        <Dialog
+            open={isFileDialogOpen}
+            onOpenChange={(isOpen) => {
+                setIsFileDialogOpen(isOpen);
+                form.reset();
+            }}
+        >
             <DialogTrigger asChild>
-                {/* <Button onClick={() => { if (!orgId) return; createFile({ name: "Hello World", orgId }) }}>Upload File</Button> */}
                 <Button>Upload File</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="mb-8">Upload Your File Here</DialogTitle>
+                    <DialogTitle className="mb-8">Upload your File Here</DialogTitle>
                     <DialogDescription>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                                <FormField
-                                    control={form.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Title</FormLabel>
-                                            <FormControl>
-                                                <Input  {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="file"
-                                    render={() => (
-                                        <FormItem>
-                                            <FormLabel>File</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="file"
-                                                    {...fileRef}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {/* Submit button with spinner when user clicks submit */}
-                                <Button type="submit" disabled={form.formState.isSubmitting} className="flex gap-1">
-                                    {form.formState.isSubmitting && (<Loader2 className="h-4 w-4 animate-spin" />)}
-                                    Submit
-                                </Button>
-                            </form>
-                        </Form>
+                        This file will be accessible by anyone in your organization
                     </DialogDescription>
                 </DialogHeader>
+
+                <div>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                            <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Title</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="file"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>File</FormLabel>
+                                        <FormControl>
+                                            <Input type="file" {...fileRef} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button
+                                type="submit"
+                                disabled={form.formState.isSubmitting}
+                                className="flex gap-1"
+                            >
+                                {form.formState.isSubmitting && (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                )}
+                                Submit
+                            </Button>
+                        </form>
+                    </Form>
+                </div>
             </DialogContent>
         </Dialog>
     );
