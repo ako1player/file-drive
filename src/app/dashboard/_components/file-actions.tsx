@@ -17,7 +17,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Protect } from "@clerk/nextjs";
 import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
     FileIcon,
     MoreVertical,
@@ -40,6 +40,7 @@ export function FileCardActions({
     const restoreFile = useMutation(api.files.restoreFile);
     const toggleFavorite = useMutation(api.files.toggleFavorite);
     const { toast } = useToast();
+    const me = useQuery(api.users.getMe)
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     return (
         <>
@@ -99,7 +100,11 @@ export function FileCardActions({
                     }}>
                         <FileIcon className="w-4 h-4" /> Download
                     </DropdownMenuItem>
-                    <Protect role="org:admin" fallback={<></>}>
+                    <Protect condition={(check) => {
+                        return check({
+                            role: "org:admin"
+                        }) || file.userId === me?._id;
+                    }} fallback={<></>}>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             className="flex gap-1 items-center cursor-pointer hover:bg-slate-100"

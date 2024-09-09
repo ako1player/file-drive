@@ -4,13 +4,21 @@ import { FileCard } from "@/app/dashboard/_components/file-card";
 import { DataTable } from "@/app/dashboard/_components/file-table";
 import { SearchBar } from "@/app/dashboard/_components/search-bar";
 import UploadButton from "@/app/dashboard/_components/upload-button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOrganization, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
-import { GridIcon, Loader2, TableIcon } from "lucide-react";
+import { FilterIcon, GridIcon, Loader2, TableIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { api } from "../../../../convex/_generated/api";
+import { Doc } from "../../../../convex/_generated/dataModel";
 
 
 function Placeholder() {
@@ -25,6 +33,7 @@ export function FileBrowser({ title, favoritesOnly, deletedOnly }: { title: stri
     const organization = useOrganization();
     const user = useUser();
     const [query, setQuery] = useState("");
+    const [type, setType] = useState<Doc<"files">["type"] | "all">("all");
 
     let orgId: string | undefined = undefined;
 
@@ -35,7 +44,7 @@ export function FileBrowser({ title, favoritesOnly, deletedOnly }: { title: stri
     const favorites = useQuery(api.files.getAllFavorites,
         orgId ? { orgId } : 'skip'
     );
-    const files = useQuery(api.files.getFiles, orgId ? { orgId, query, favorites: favoritesOnly, deletedOnly } : 'skip');
+    const files = useQuery(api.files.getFiles, orgId ? { orgId, type: type === 'all' ? undefined : type, query, favorites: favoritesOnly, deletedOnly } : 'skip');
     const isLoading = files === undefined;
 
     const modifiedFiles = files?.map((file) => ({
@@ -54,10 +63,26 @@ export function FileBrowser({ title, favoritesOnly, deletedOnly }: { title: stri
                 </div>
 
                 <Tabs defaultValue="grid">
-                    <TabsList className="mb-4">
-                        <TabsTrigger value="grid" className="flex gap-2 items-center"><GridIcon />Grid</TabsTrigger>
-                        <TabsTrigger value="table" className="flex gap-2 items-center"><TableIcon />Table</TabsTrigger>
-                    </TabsList>
+                    <div className="flex justify-between items-center">
+                        <TabsList className="mb-4">
+                            <TabsTrigger value="grid" className="flex gap-2 items-center"><GridIcon />Grid</TabsTrigger>
+                            <TabsTrigger value="table" className="flex gap-2 items-center"><TableIcon />Table</TabsTrigger>
+                        </TabsList>
+                        <div className="flex items-center gap-2">
+                            <FilterIcon />
+                            <Select value={type} onValueChange={(newType) => { setType(newType as any) }}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All</SelectItem>
+                                    <SelectItem value="image">Image</SelectItem>
+                                    <SelectItem value="csv">CSV</SelectItem>
+                                    <SelectItem value="pdf">PDF</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                     {isLoading && (
                         <div className="items-center w-full flex flex-col mt-24 gap-8">
                             <Loader2 className="h-24 w-24 animate-spin text-gray-500" />
