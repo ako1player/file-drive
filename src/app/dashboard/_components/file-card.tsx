@@ -26,7 +26,7 @@ function getFileUrl(fileId: Id<"_storage">): string {
 export function FileCard({
     file,
 }: {
-    file: Doc<"files"> & { isFavorited: boolean };
+    file: Doc<"files"> & { isFavorited: boolean; url: string | null };
 }) {
     const typeIcons = {
         image: <ImageIcon />,
@@ -51,13 +51,8 @@ export function FileCard({
                 {/* <CardDescription>Card Description</CardDescription> */}
             </CardHeader>
             <CardContent className="h-[200px] flex items-center justify-center">
-                {file.type === "image" && (
-                    <Image
-                        alt={file.name}
-                        width="200"
-                        height="100"
-                        src={getFileUrl(file.fileId)}
-                    />
+                {file.type === "image" && file.url && (
+                    <Image alt={file.name} width="200" height="100" src={file.url} />
                 )}
                 {file.type === "csv" && <GanttChartIcon className="w-20 h-20" />}
                 {file.type === "pdf" && <FileTextIcon className="w-20 h-20" />}

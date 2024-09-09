@@ -33,7 +33,7 @@ export function FileCardActions({
     file,
     isFavorited,
 }: {
-    file: Doc<"files">;
+    file: Doc<"files"> & { url: string | null };
     isFavorited: boolean;
 }) {
     const deleteFile = useMutation(api.files.deleteFile);
@@ -96,6 +96,7 @@ export function FileCardActions({
                     </DropdownMenuItem>
                     <DropdownMenuItem className="flex gap-1 items-center cursor-pointer hover:bg-slate-100" onClick={() => {
                         // Open a new tab to file locatrion on convex
+                        if (!file.url) return;
                         window.open(getFileUrl(file.fileId), "_blank");
                     }}>
                         <FileIcon className="w-4 h-4" /> Download

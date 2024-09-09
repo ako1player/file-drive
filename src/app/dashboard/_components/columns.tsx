@@ -1,12 +1,12 @@
 "use client";
 
-import { FileCardActions } from "@/app/dashboard/_components/file-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "convex/react";
 import { formatRelative } from "date-fns";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { FileCardActions } from "./file-actions";
 
 function UserCell({ userId }: { userId: Id<"users"> }) {
     const userProfile = useQuery(api.users.getUserProfile, {

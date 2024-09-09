@@ -1,4 +1,5 @@
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import { Footer } from "@/app/footer";
 import { Header } from "@/app/header";
 import { Toaster } from "@/components/ui/toaster";
 import type { Metadata } from "next";
@@ -19,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}><ConvexClientProvider><Toaster /><Header />{children}</ConvexClientProvider></body>
+      <body className={inter.className}><ConvexClientProvider><Toaster /><Header />{children}<Footer /></ConvexClientProvider></body>
     </html>
   );
 }
